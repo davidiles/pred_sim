@@ -13,7 +13,7 @@ library(rgeos) #For placing buffer around nests
 #Predator attributes
 predator_turn_angle = 0.95 # 0.001 = diffusion, 0.999 = straight lines
 predator_speed = 33 #meters per min (2km/h)
-attack_radius = 50 #meters
+attack_radius = 100 #meters
 
 
 #LPB nest locations (use 2013)
@@ -202,6 +202,7 @@ nest_init$camera_captures = nest_init$cam * nest_init$day_failed
 
 if (sum(nest_init$camera_captures == 0, na.rm=TRUE)>0) nest_init$camera_captures[nest_init$camera_captures == 0] = NA
 
+pdf(file = "predsim.pdf")
 par(mfrow=c(1,1))
 par(mar=c(4,4,2,1))
 
@@ -246,3 +247,4 @@ par(mar=c(5,5,2,1))
 hist(nest_init$camera_captures, breaks = seq(0,days), xlab="Day of Season", ylab = "Number of Times Caught on Camera", main = "Camera Captures", col = "black")
 
 par(mfrow=c(1,1))
+dev.off()
