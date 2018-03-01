@@ -1,5 +1,5 @@
 # install/load necessary packages
-my.packs <- c('circular','rgdal','sp','RColorBrewer','rgeos')
+my.packs <- c('circular','rgdal','sp','RColorBrewer','rgeos','spatstat')
 if (any(!my.packs %in% installed.packages()[, 'Package']))install.packages(my.packs[which(!my.packs %in% installed.packages()[, 'Package'])],dependencies = TRUE)
 lapply(my.packs, require, character.only = TRUE)
 
@@ -16,7 +16,7 @@ rm(list=ls()) #Clear R's working memory
 #Predator attributes
 predator_turn_angle = 0.95 # 0.001 = diffusion, 0.999 = straight lines
 predator_turn_angle_eaten = 0.95 #Turn angles for 60 min after predator has eaten a nest
-predator_speed = 5*16.6667 #meters per min (coverted from km/h)
+predator_speed = 3*16.6667 #meters per min (coverted from km/h)
 attack_radius = 100 #meters
 
 #Boundary box
@@ -24,8 +24,8 @@ boundary_size = 5 #km
 
 #Nest attributes
 camera_proportion = 0.1 #proportion of nests with cameras on them
-nest_initiation_mean = 5 #mean day of nest initiation
-nest_initiation_sd = 3 #sd of initiation date
+nest_initiation_mean = 1 #mean day of nest initiation
+nest_initiation_sd = 0 #sd of initiation date
 ####################################################
 
 #LPB nest locations (use 2013)
@@ -43,6 +43,12 @@ res <- spTransform(cord.dec, CRS("+proj=utm +zone=15 ellps=WGS84"))
 nest_init = as.data.frame(res)
 nest_init$ID = paste("Nest",1:nrow(nest_init))
 nest_init$min_failed = NA
+
+#Pairwise distances between nests
+d <- crossdist(nest_init$lon, nest_init$lat, nest_init$lon, nest_init$lat)
+d[lower.tri(d, diag = FALSE)] = NA
+#hist(d,breaks = seq(0,5000,25))
+#abline(v = attack_radius,col="red",lwd=2)
 
 #Nest phenology
 nest_init$init = as.integer(rnorm(nrow(nest_init),nest_initiation_mean,nest_initiation_sd)) #Dispersed phenology
@@ -73,8 +79,8 @@ Phi = y_dir*pi
 
 #Random initial location and direction of predator (choose either this or conditions above)
 #Place within 2km of colony
-x = runif(1,min(nest_init$lon)-2000,max(nest_init$lon)+2000)
-y = runif(1,min(nest_init$lat)-2000,max(nest_init$lat)+2000)
+x = runif(1,min(nest_init$lon)-1000,max(nest_init$lon)+1000)
+y = runif(1,min(nest_init$lat)-1000,max(nest_init$lat)+1000)
 y_dir = runif(1,0,2*pi)
 
 x_vec = x
@@ -89,6 +95,12 @@ time_since_meal = 100
 
 # Start the clock to record processing time for this simulation
 ptm <- proc.time()
+
+
+#For testing
+
+#x_vec = x = 473000
+#y_vec = y = 6509000
 
 #Loop through minutes of study
 for (i in 2:min_season){
@@ -119,23 +131,41 @@ for (i in 2:min_season){
         #"Teleport" to closest nest within attack radius
         close_nest = which(dists == min(dists))
 
-        nest_id = nest_dyn$ID[close_nest]
+        #Move towards nest
+        Phi <- atan2(nest_dyn$lat[close_nest] - y_vec[i-1],nest_dyn$lon[close_nest] - x_vec[i-1])
 
-        nest_init$min_failed[nest_init$ID == nest_id] = i
+        if (min(dists)<=predator_speed){
+            print(paste(nest_dyn$ID[close_nest],"eaten at minute",i))
 
-        x = nest_dyn$lon[close_nest]
-        y = nest_dyn$lat[close_nest]
-        nest_dyn = nest_dyn[-close_nest,]
+            nest_id = nest_dyn$ID[close_nest]
 
-        x_vec = c(x_vec,x)
-        y_vec = c(y_vec,y)
+            nest_init$min_failed[nest_init$ID == nest_id] = i
 
-        time_since_meal = 0
+            x = nest_dyn$lon[close_nest]
+            y = nest_dyn$lat[close_nest]
+            nest_dyn = nest_dyn[-close_nest,]
 
-        #After eating nest, head in new random direction
-        Phi <- rwrappedcauchy(1,circular(0),predator_turn_angle_eaten)
+            x_vec = c(x_vec,x)
+            y_vec = c(y_vec,y)
 
-        print(i)
+            time_since_meal = 0
+        } else{
+
+            steps <- predator_speed
+
+            # step length components
+            dX <- steps*cos(Phi)
+            dY <- steps*sin(Phi)
+
+            # actual X-Y values
+            x = x+dX
+            y = y+dY
+
+            x_vec = c(x_vec,x)
+            y_vec = c(y_vec,y)
+
+
+        }
 
         #If otherwise, continue normal movement
     } else {
@@ -185,7 +215,6 @@ for (i in 2:min_season){
             x_vec = c(x_vec,x)
             y_vec = c(y_vec,y)
 
-            print(i)
 
         } else { #If predator has not eaten in the last hour, go back to directed movement
 
@@ -228,9 +257,20 @@ for (i in 2:min_season){
             x_vec = c(x_vec,x)
             y_vec = c(y_vec,y)
 
-            print(i)
         }
     }
+    #print(i)
+
+    # #Testing
+    # nest_init$day_failed = floor(nest_init$min_failed/60/24 + 1)
+    #
+    # Sys.sleep(0.05)
+    # plot(lat~lon, col = "blue", pch = 19, data = nest_init, cex = 1)
+    # points(lat~lon, col = "blue", pch = 19, data = nest_init, cex = 1)
+    # points(lat~lon, col = "red", pch = 19, data = na.omit(nest_init[,c("lon","lat","day_failed")]), cex = 1)
+    # lines(y_vec~x_vec, pch=19, col = "black", cex = 1,lty=1)
+    # points(lat~lon, col = "black", pch = 0, cex = 1, data = subset(nest_init, cam == 1))
+
 
 
 }
@@ -243,6 +283,7 @@ print(sim.time) #Print processing time
 nest_init$dep = 0
 nest_init$dep[nest_init$min_failed > 0] = 1
 
+#Plotting
 #Buffer around nests - to delineate study area
 buf1 <- gBuffer(res, width=attack_radius, byid=TRUE)
 buf2 <- gUnaryUnion(buf1)
@@ -254,13 +295,13 @@ pred_pts = SpatialPoints(pred_pts, proj4string=CRS("+proj=utm +zone=15 ellps=WGS
 
 occupied = over( pred_pts , buf2 , fn = NULL)
 times_occupied = which(!is.na(occupied))
-days_occupied = floor(times_occupied/60/24 + 1)
+days_occupied = (floor(times_occupied/60/24 + 1))
+hist(days_occupied, breaks = seq(0,days,1), col = "gray")
 
 #Predation dynamics
 nest_init$day_failed = floor(nest_init$min_failed/60/24 + 1)
 nest_init$camera_captures = nest_init$cam * nest_init$day_failed
 if (sum(nest_init$camera_captures == 0, na.rm=TRUE)>0) nest_init$camera_captures[nest_init$camera_captures == 0] = NA
-
 
 #Calculate proportion of active nests consumed on each day
 nest_summary = data.frame(Day = 1:days, failed = 0, hatched = 0, active = 0, init = 0)
@@ -274,9 +315,10 @@ if (sum(!is.na(nest_init$day_failed)>0)){
     nest_summary$failed[day_eaten$day_failed] = day_eaten$ID
 }
 
-
+if (sum(is.na(nest_init$day_failed)>0)){
 day_hatched = aggregate(ID~hatch, data = subset(nest_init, dep == 0), FUN = length)
 nest_summary$hatched[day_hatched$hatch] = day_hatched$ID
+}
 
 for (d in 1:days){
     nest_active = subset(nest_init, init<=d & hatch>=d & (day_failed > d | is.na(day_failed)))
@@ -293,6 +335,7 @@ par(mfrow=c(1,1))
 par(mar=c(4,4,2,1))
 
 predator_walk_col = colorRampPalette(colors=c("gray25","gray95"))(length(x_vec))
+
 #Predator walk
 par(fig = c(0,0.5, 0.5, 1))
 plot(y_vec~x_vec, xlim = boundary_x, ylim = boundary_y, type="l",
@@ -302,7 +345,7 @@ points(lat~lon, col = "red", pch = 19, data = na.omit(nest_init[,c("lon","lat","
 #points(y_vec[1]~x_vec[1], col = "black", pch = 4, cex = 0.5)
 
 text(x = boundary_x[1]+diff(boundary_x),y = boundary_y[1]+diff(boundary_y)*0.9, labels = paste("speed=",round(predator_speed/16.6667,1),"km/h",sep=""), adj = 1)
-text(x = boundary_x[1]+diff(boundary_x),y = boundary_y[1]+diff(boundary_y)*0.8, labels = paste("angle=",predator_turn_angle,sep=""), adj = 1)
+text(x = boundary_x[1]+diff(boundary_x),y = boundary_y[1]+diff(boundary_y)*0.8, labels = paste("rho=",predator_turn_angle,sep=""), adj = 1)
 text(x = boundary_x[1]+diff(boundary_x),y = boundary_y[1]+diff(boundary_y)*0.7, labels = paste("radius=",attack_radius,"m",sep=""), adj = 1)
 
 #Rose diagram of predator movement angles
@@ -312,14 +355,13 @@ text(x = boundary_x[1]+diff(boundary_x),y = boundary_y[1]+diff(boundary_y)*0.7, 
 
 par(fig = c(0.5,1, 0.5, 1), new = T)
 par(mar=c(5,5,1,1))
-#hist(days_occupied, breaks = seq(0,days), xlab = "Day of Season", ylab = "Steps inside Colony by Predator", main = "Presence in Colony Per Day", col = "gray75")
 hist(nest_init$day_failed, breaks = seq(0,days), xlab="Day of Season", ylab = "Number of Nests Eaten", main = "Nests Eaten per Day", col = "red")
 
 par(fig = c(0,0.5, 0, 0.5), new = T)
 par(mar=c(4,4,2,2))
 plot(buf2,xlab = "", ylab = "", main = "Close-up of Colony", col = "white")
 #plot(lat~lon, data = nest_init, pch = 19, col = "blue",xlab = "UTM x", ylab = "UTM y", main = "Close-up of Colony")
-points(y_vec~x_vec, pch=19, col = predator_walk_col, cex = 0.3)
+lines(y_vec~x_vec, pch=19, col = "gray85", cex = 0.3,lty=2)
 par(fig = c(0,0.5, 0, 0.5), new = T)
 plot(buf2,xlab = "", ylab = "", main = "Close-up of Colony", col = "white", add = TRUE)
 points(lat~lon, col = "blue", pch = 19, data = nest_init, cex = 0.5)
@@ -336,7 +378,6 @@ dev.copy(pdf,"pred_fig.pdf", width=7, height=7)
 dev.off()
 
 # Other plots
-
 # Cumulative nest fates over the season
 
 #Number active (white), failed (red), and hatched (blue) each day
