@@ -17,7 +17,7 @@ rm(list=ls()) #Clear R's working memory
 predator_turn_angle = 0.95 # 0.001 = diffusion, 0.999 = straight lines
 predator_turn_angle_eaten = 0.95 #Turn angles for 60 min after predator has eaten a nest
 predator_speed = 5*16.6667 #meters per min (2km/h)
-attack_radius = 200 #meters
+attack_radius = 100 #meters
 
 #Boundary box
 boundary_size = 5 #km
@@ -320,11 +320,11 @@ par(mar=c(4,4,2,2))
 plot(buf2,xlab = "", ylab = "", main = "Close-up of Colony", col = "white")
 #plot(lat~lon, data = nest_init, pch = 19, col = "blue",xlab = "UTM x", ylab = "UTM y", main = "Close-up of Colony")
 points(y_vec~x_vec, pch=19, col = predator_walk_col, cex = 0.3)
-points(lat~lon, col = "blue", pch = 19, data = nest_init)
-points(lat~lon, col = "red", pch = 19, data = na.omit(nest_init[,c("lon","lat","day_failed")]))
-points(lat~lon, col = "black", pch = 0, cex = 1.5, data = subset(nest_init, cam == 1))
-lines(y_vec~x_vec, lty = 2, col = "gray75")
-points(y_vec[which(y_vec %in% nest_init$lat)]~x_vec[which(x_vec %in% nest_init$lon)], pch=19, col = "red", cex = 0.8)
+par(fig = c(0,0.5, 0, 0.5), new = T)
+plot(buf2,xlab = "", ylab = "", main = "Close-up of Colony", col = "white", add = TRUE)
+points(lat~lon, col = "blue", pch = 19, data = nest_init, cex = 0.5)
+points(lat~lon, col = "red", pch = 19, data = na.omit(nest_init[,c("lon","lat","day_failed")]), cex = 0.5)
+points(lat~lon, col = "black", pch = 0, cex = 1, data = subset(nest_init, cam == 1))
 
 par(fig = c(0.5,1, 0, 0.5), new = T)
 par(mar=c(5,5,2,1))
