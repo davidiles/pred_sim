@@ -16,7 +16,7 @@ rm(list=ls()) #Clear R's working memory
 #Predator attributes
 predator_turn_angle = 0.95 # 0.001 = diffusion, 0.999 = straight lines
 predator_turn_angle_eaten = 0.95 #Turn angles for 60 min after predator has eaten a nest
-predator_speed = 5*16.6667 #meters per min (2km/h)
+predator_speed = 5*16.6667 #meters per min (coverted from km/h)
 attack_radius = 100 #meters
 
 #Boundary box
