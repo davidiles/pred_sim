@@ -10,11 +10,23 @@ rm(list=ls()) #Clear R's working memory
 # movement speed: 10, 50, 100m/min
 # turn angle: 0.1, 0.5, 0.9
 
+####################################################
+# Simulation attributes
+####################################################
 #Predator attributes
-predator_turn_angle = 0.99 # 0.001 = diffusion, 0.999 = straight lines
-predator_turn_angle_eaten = 0.5 #Turn angles for 60 min after predator has eaten a nest
+predator_turn_angle = 0.95 # 0.001 = diffusion, 0.999 = straight lines
+predator_turn_angle_eaten = 0.95 #Turn angles for 60 min after predator has eaten a nest
 predator_speed = 5*16.6667 #meters per min (2km/h)
 attack_radius = 200 #meters
+
+#Boundary box
+boundary_size = 5 #km
+
+#Nest attributes
+camera_proportion = 0.1 #proportion of nests with cameras on them
+nest_initiation_mean = 5 #mean day of nest initiation
+nest_initiation_sd = 3 #sd of initiation date
+####################################################
 
 #LPB nest locations (use 2013)
 nestloc = read.csv("C:/Users/koonslt/Documents/Iles/University/PhD_Project/Data/COEI/Database/spatial_data/gps_data/coei_2013_gps_REVISED.csv")
@@ -33,7 +45,7 @@ nest_init$ID = paste("Nest",1:nrow(nest_init))
 nest_init$min_failed = NA
 
 #Nest phenology
-nest_init$init = as.integer(rnorm(nrow(nest_init),5,3)) #Dispersed phenology
+nest_init$init = as.integer(rnorm(nrow(nest_init),nest_initiation_mean,nest_initiation_sd)) #Dispersed phenology
 #nest_init$init = 1 #Perfectly synchronous phenology
 
 nest_init$hatch = nest_init$init + 30 #30 day nesting period
@@ -41,7 +53,6 @@ nest_init$hatch = nest_init$init + 30 #30 day nesting period
 days = 60 #Length of simulation
 min_season = 60*24*days #convert days to minutes (length of simulation)
 
-camera_proportion = 0.1 #proportion of nests with cameras on them
 cameras = round(nrow(nest_init) * camera_proportion)
 cam_nests = sample(1:nrow(nest_init),cameras, replace=FALSE) #Randomly select nests to place cameras on
 nest_init$cam = 0
@@ -51,8 +62,8 @@ nest_init$cam[cam_nests] = 1
 # Place reflexive boundary around colony
 ########################################################
 
-boundary_x = c(min(res$lon)-20000, max(res$lon)+20000)
-boundary_y = c(min(res$lat)-20000, max(res$lat)+2000)
+boundary_x = c(min(res$lon)-boundary_size*1000, max(res$lon)+boundary_size*1000)
+boundary_y = c(min(res$lat)-boundary_size*1000, max(res$lat)+boundary_size*1000)
 
 #Initially place predator on coast, about 5 km away
 x = boundary_x[2]
@@ -135,7 +146,7 @@ for (i in 2:min_season){
         steps <- predator_speed
 
         #If predator has recently eaten, move diffusively
-        if (time_since_meal < 60*12){
+        if (time_since_meal < 60){
             theta <- rwrappedcauchy(1,circular(0),predator_turn_angle_eaten)
 
             # cumulative angle (absolute orientation)
@@ -278,8 +289,6 @@ nest_summary$total_hatched = cumsum(nest_summary$hatched)
 nest_summary$proportion_eaten = 1- nest_summary$active/(nest_summary$active + nest_summary$failed)
 
 #Plotting
-pdf(file = "predsim.pdf")
-
 par(mfrow=c(1,1))
 par(mar=c(4,4,2,1))
 
@@ -296,9 +305,10 @@ text(x = boundary_x[1]+diff(boundary_x),y = boundary_y[1]+diff(boundary_y)*0.9, 
 text(x = boundary_x[1]+diff(boundary_x),y = boundary_y[1]+diff(boundary_y)*0.8, labels = paste("angle=",predator_turn_angle,sep=""), adj = 1)
 text(x = boundary_x[1]+diff(boundary_x),y = boundary_y[1]+diff(boundary_y)*0.7, labels = paste("radius=",attack_radius,"m",sep=""), adj = 1)
 
-par(mar=c(2,2,2,1))
-par(fig = c(0.05,0.3, 0.7, 1), new = T)
-rose.diag(rwrappedcauchy(10000,circular(0),predator_turn_angle),bins=24, col = "white", cex = 0.8)
+#Rose diagram of predator movement angles
+#par(mar=c(2,2,2,1))
+#par(fig = c(0.05,0.3, 0.7, 1), new = T)
+#rose.diag(rwrappedcauchy(10000,circular(0),predator_turn_angle),bins=24, col = "white", cex = 0.8)
 
 par(fig = c(0.5,1, 0.5, 1), new = T)
 par(mar=c(5,5,1,1))
@@ -322,8 +332,8 @@ par(mar=c(5,5,2,1))
 hist(nest_init$camera_captures, breaks = seq(0,days), xlab="Day of Season", ylab = "Number of Times Caught on Camera", main = "Camera Captures", col = "black")
 
 par(mfrow=c(1,1))
+dev.copy(pdf,"pred_fig.pdf", width=7, height=7)
 dev.off()
-
 
 # Other plots
 
