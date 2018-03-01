@@ -278,7 +278,7 @@ nest_summary$total_hatched = cumsum(nest_summary$hatched)
 nest_summary$proportion_eaten = 1- nest_summary$active/(nest_summary$active + nest_summary$failed)
 
 #Plotting
-#pdf(file = "predsim.pdf")
+pdf(file = "predsim.pdf")
 
 par(mfrow=c(1,1))
 par(mar=c(4,4,2,1))
@@ -292,7 +292,7 @@ points(lat~lon, col = "blue", pch = 19, cex = 0.2, data = nest_init)
 points(lat~lon, col = "red", pch = 19, data = na.omit(nest_init[,c("lon","lat","day_failed")]), cex = 0.2)
 #points(y_vec[1]~x_vec[1], col = "black", pch = 4, cex = 0.5)
 
-text(x = boundary_x[1]+diff(boundary_x),y = boundary_y[1]+diff(boundary_y)*0.9, labels = paste("speed=",round(predator_speed),"m/min",sep=""), adj = 1)
+text(x = boundary_x[1]+diff(boundary_x),y = boundary_y[1]+diff(boundary_y)*0.9, labels = paste("speed=",round(predator_speed/16.6667,1),"km/h",sep=""), adj = 1)
 text(x = boundary_x[1]+diff(boundary_x),y = boundary_y[1]+diff(boundary_y)*0.8, labels = paste("angle=",predator_turn_angle,sep=""), adj = 1)
 text(x = boundary_x[1]+diff(boundary_x),y = boundary_y[1]+diff(boundary_y)*0.7, labels = paste("radius=",attack_radius,"m",sep=""), adj = 1)
 
@@ -322,7 +322,7 @@ par(mar=c(5,5,2,1))
 hist(nest_init$camera_captures, breaks = seq(0,days), xlab="Day of Season", ylab = "Number of Times Caught on Camera", main = "Camera Captures", col = "black")
 
 par(mfrow=c(1,1))
-#dev.off()
+dev.off()
 
 
 # Other plots
