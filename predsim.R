@@ -13,10 +13,12 @@ rm(list=ls()) #Clear R's working memory
 ####################################################
 # Simulation attributes
 ####################################################
+
 #Predator attributes
 predator_turn_angle = 0.95 # 0.001 = diffusion, 0.999 = straight lines
 predator_turn_angle_eaten = 0.95 #Turn angles for 60 min after predator has eaten a nest
-predator_speed = 3*16.6667 #meters per min (coverted from km/h)
+handling_time = 5 #minutes to process each nest
+predator_speed = 2*16.6667 #meters per min (coverted from km/h)
 attack_radius = 100 #meters
 
 #Boundary box
@@ -91,19 +93,14 @@ nest_dyn = nest_init
 nest_dyn = subset(nest_dyn, init <= 1) #Only select nests that have initiated so far
 
 day = 1
-time_since_meal = 100
+time_since_meal = 99999
 
 # Start the clock to record processing time for this simulation
 ptm <- proc.time()
 
-
-#For testing
-
-#x_vec = x = 473000
-#y_vec = y = 6509000
-
 #Loop through minutes of study
 for (i in 2:min_season){
+    time_since_meal = time_since_meal + 1
 
     day_update = round(i/60/24) #convert i to days (i is recorded in minutes)
 
@@ -121,6 +118,14 @@ for (i in 2:min_season){
 
     #If all nests have hatched or failed, stop the simulation
     if (day > max(subset(nest_init, is.na(min_failed))$hatch)) break
+
+    #If within handling time, don't move predator
+    if (time_since_meal < handling_time){
+        x_vec = c(x_vec,x)
+        y_vec = c(y_vec,y)
+
+        next
+    }
 
     #If nest_dyn is empty, create large dist (to keep predator moving)
     if (nrow(nest_dyn) < 1 | is.null(nrow(nest_dyn))) dists = 10000 else dists = sqrt( (nest_dyn$lon - x)^2 + (nest_dyn$lat - y)^2)
@@ -149,6 +154,7 @@ for (i in 2:min_season){
             y_vec = c(y_vec,y)
 
             time_since_meal = 0
+
         } else{
 
             steps <- predator_speed
@@ -169,8 +175,6 @@ for (i in 2:min_season){
 
         #If otherwise, continue normal movement
     } else {
-
-        time_since_meal = time_since_meal + 1
 
         # make weibull distributed steps
         steps <- predator_speed
@@ -259,9 +263,10 @@ for (i in 2:min_season){
 
         }
     }
+
     #print(i)
 
-    # #Testing
+    # #Testing (plot predator movements in real time)
     # nest_init$day_failed = floor(nest_init$min_failed/60/24 + 1)
     #
     # Sys.sleep(0.05)
