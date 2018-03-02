@@ -1,0 +1,41 @@
+model{
+
+    ########
+    # Priors
+    ########
+
+    for (a in 1:Years){
+        phi.intercept[a] ~ dunif(0,1)
+    }
+
+    ########
+    # Likelihood
+    ########
+    for (i in 1:N){
+
+        z[i,1]<-1
+
+        for (j in 2:encounter_length[i]){
+
+            #Observed encounter history
+            y[i,j] ~ dbern(p[i,j])
+
+            #Status on this day is status previous day * survival rate
+            p[i,j] <- (y[i,j-1])*q[i,j]
+
+            #Covariates
+            q[i,j]<-phi.intercept[nestYear[i]]
+
+            #x.rep[i,j]~dbern(p1[i,j])
+            #p1[i,j]<-(x.rep[i,j-1])*q[i,j]
+            #cumq[i,j]<-q[i,j]*(cumq[i,j-1])
+
+            # Fate of nest i on day d
+            #z[i,d] ~ dbern(phi.mean * z[i,d-1])
+
+        } #d
+
+    } #i
+
+    }
+    
