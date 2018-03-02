@@ -124,5 +124,5 @@ summary_plot = ggplot(data = annual_NS) +
 
 print(summary_plot)
 
-dev.copy(pdf,"nest_surv.pdf", width=7, height=4)
+dev.copy(pdf,"nest_surv.pdf", width=6, height=3)
 dev.off()
