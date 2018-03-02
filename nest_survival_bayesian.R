@@ -5,9 +5,15 @@ lapply(my.packs, require, character.only = TRUE)
 
 rm(list=ls()) #Clear R's working memory
 
-#Read nest script
+#Read inp file
 inp = read.csv("../../../Data/coei_inp.csv", header=TRUE)
-#Note that "Fate" is 1 if nest failed, and 0 if hatched
+
+#Column 1: $nestIDyear; nest ID
+#Column 2: $FirstFound; Calendar date first found
+#Column 3: $LastPresent; Calendar date last seen active (or expected hatch date, whichever is smaller)
+#Column 4: $LastChecked; Calendar date last checked (if hatched, this should be equal to last active)
+#Column 5: $Fate; Nest Fate (0 = hatched, 1 = failed)
+#Column 6: $Year; Year of study
 
 #Sort from earliest to latest year
 inp = inp[order(inp$Year),]
